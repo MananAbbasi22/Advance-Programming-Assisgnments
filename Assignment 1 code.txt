@@ -1,0 +1,263 @@
+using System;
+using System.Collections.Generic;
+
+namespace ConsoleApp1
+{
+    internal class Program
+    {
+        class Item
+        {
+            public readonly string Name;
+            public readonly int Price;
+            public int Quantity;
+            public int Stock;
+
+            public Item(string name, int price, int stock)
+            {
+                Name = name;
+                Price = price;
+                Stock = stock;
+                Quantity = 0;
+            }
+        }
+
+        static readonly List<Item> cart = new List<Item>();
+        static readonly Dictionary<string, int> itemCount = new Dictionary<string, int>();
+        static int totalSales = 0;
+
+        static void Main()
+        {
+            // Using simple initialization style to avoid warnings
+            var store = new Dictionary<string, Item>
+            {
+                {"Men Cotton", new Item("Men Cotton", 4000, 10)},
+                {"Men Silk", new Item("Men Silk", 4500, 10)},
+                {"Men Wool", new Item("Men Wool", 4700, 10)},
+
+                {"Women Cotton", new Item("Women Cotton", 6000, 10)},
+                {"Women Silk", new Item("Women Silk", 6500, 10)},
+                {"Women Wool", new Item("Women Wool", 6700, 10)},
+
+                {"Children Cotton", new Item("Children Cotton", 3000, 10)},
+                {"Children Silk", new Item("Children Silk", 3500, 10)},
+                {"Children Wool", new Item("Children Wool", 3700, 10)},
+
+                {"Hat", new Item("Hat", 500, 15)},
+                {"Scarf", new Item("Scarf", 700, 15)}
+            };
+
+            bool exit = false;
+
+            while (!exit)
+            {
+                Console.WriteLine("\n==== CLOTHING STORE MENU ====");
+                Console.WriteLine("1. View Store Items");
+                Console.WriteLine("2. Add Item to Cart");
+                Console.WriteLine("3. View Cart");
+                Console.WriteLine("4. Remove Item");
+                Console.WriteLine("5. Checkout");
+                Console.WriteLine("6. View Sales Report");
+                Console.WriteLine("7. Exit");
+                Console.Write("Enter your choice: ");
+                string choice = Console.ReadLine();
+
+                if (choice == "1")
+                    ViewStoreItems(store);
+                else if (choice == "2")
+                    AddToCart(store);
+                else if (choice == "3")
+                    ViewCart();
+                else if (choice == "4")
+                    RemoveItem();
+                else if (choice == "5")
+                    Checkout();
+                else if (choice == "6")
+                    ShowSalesReport();
+                else if (choice == "7")
+                    exit = true;
+                else
+                    Console.WriteLine("Invalid choice! Try again.");
+            }
+        }
+
+        static void ViewStoreItems(Dictionary<string, Item> store)
+        {
+            Console.WriteLine("\nAvailable Items:");
+            foreach (var item in store)
+            {
+                Console.WriteLine($"{item.Value.Name} - Rs.{item.Value.Price} (Stock: {item.Value.Stock})");
+            }
+        }
+
+        static void AddToCart(Dictionary<string, Item> store)
+        {
+            Console.Write("\nEnter item name: ");
+            string name = Console.ReadLine();
+
+            if (!store.ContainsKey(name))
+            {
+                Console.WriteLine("Item not found!");
+                return;
+            }
+
+            Item storeItem = store[name];
+
+            Console.Write("Enter quantity: ");
+            if (!int.TryParse(Console.ReadLine(), out int qty))
+            {
+                Console.WriteLine("Invalid input!");
+                return;
+            }
+
+            if (qty > storeItem.Stock)
+            {
+                Console.WriteLine("Sorry, not enough stock available!");
+                return;
+            }
+
+            // Check if item already in cart
+            Item found = cart.Find(x => x.Name == name);
+            if (found != null)
+            {
+                found.Quantity += qty;
+            }
+            else
+            {
+                var newItem = new Item(storeItem.Name, storeItem.Price, storeItem.Stock)
+                {
+                    Quantity = qty
+                };
+                cart.Add(newItem);
+            }
+
+            storeItem.Stock -= qty;
+            Console.WriteLine($"{qty} {name} added to cart!");
+        }
+
+        static void ViewCart()
+        {
+            if (cart.Count == 0)
+            {
+                Console.WriteLine("\nYour cart is empty!");
+                return;
+            }
+
+            Console.WriteLine("\nYour Cart:");
+            int total = 0;
+
+            foreach (var item in cart)
+            {
+                int price = item.Price * item.Quantity;
+                Console.WriteLine($"{item.Name} x {item.Quantity} = Rs.{price}");
+                total += price;
+            }
+
+            Console.WriteLine($"Total so far: Rs.{total}");
+        }
+
+        static void RemoveItem()
+        {
+            Console.Write("\nEnter item name to remove: ");
+            string name = Console.ReadLine();
+
+            Item found = cart.Find(x => x.Name == name);
+            if (found != null)
+            {
+                cart.Remove(found);
+                Console.WriteLine($"{name} removed from cart!");
+            }
+            else
+            {
+                Console.WriteLine("Item not found in cart!");
+            }
+        }
+
+        static void Checkout()
+        {
+            if (cart.Count == 0)
+            {
+                Console.WriteLine("Your cart is empty!");
+                return;
+            }
+
+            int subtotal = 0;
+
+            foreach (var item in cart)
+            {
+                int totalPrice = item.Price * item.Quantity;
+
+                // Bulk discount for 3 or more
+                if (item.Quantity >= 3)
+                {
+                    totalPrice = (int)(totalPrice * 0.9);
+                    Console.WriteLine($"10% discount applied on {item.Name}");
+                }
+
+                subtotal += totalPrice;
+
+                // Track item frequency for report
+                if (itemCount.ContainsKey(item.Name))
+                    itemCount[item.Name] += item.Quantity;
+                else
+                    itemCount[item.Name] = item.Quantity;
+            }
+
+            // Gift wrapping option
+            Console.Write("\nAdd gift wrapping (Rs.200 per item)? (yes/no): ");
+            string wrap = Console.ReadLine().ToLower();
+            if (wrap == "yes")
+            {
+                int wrapCost = cart.Count * 200;
+                subtotal += wrapCost;
+                Console.WriteLine($"Gift wrap added: Rs.{wrapCost}");
+            }
+
+            // Seasonal discount
+            if (subtotal > 20000)
+            {
+                subtotal = (int)(subtotal * 0.95);
+                Console.WriteLine("5% seasonal discount applied!");
+            }
+
+            // Promo code
+            Console.Write("\nEnter promo code (or press Enter to skip): ");
+            string promo = Console.ReadLine();
+            if (promo == "SALE10")
+            {
+                subtotal = (int)(subtotal * 0.9);
+                Console.WriteLine("Promo code SALE10 applied (10% off)!");
+            }
+
+            Console.WriteLine($"\nFinal Total: Rs.{subtotal}");
+            totalSales += subtotal;
+            cart.Clear();
+            Console.WriteLine("Checkout complete. Thank you for shopping!");
+        }
+
+        static void ShowSalesReport()
+        {
+            Console.WriteLine("\n==== SALES REPORT ====");
+            Console.WriteLine($"Total Sales: Rs.{totalSales}");
+
+            if (itemCount.Count == 0)
+            {
+                Console.WriteLine("No sales yet.");
+                return;
+            }
+
+            string topItem = "";
+            int maxCount = 0;
+
+            foreach (var item in itemCount)
+            {
+                if (item.Value > maxCount)
+                {
+                    maxCount = item.Value;
+                    topItem = item.Key;
+                }
+            }
+
+            Console.WriteLine($"Most frequently purchased item: {topItem} ({maxCount} sold)");
+        }
+    }
+}
