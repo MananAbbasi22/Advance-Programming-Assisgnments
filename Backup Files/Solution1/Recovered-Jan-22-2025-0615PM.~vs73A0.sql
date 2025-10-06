@@ -1,0 +1,9 @@
+CREATE DATABASE LibraryDB;
+
+USE LibraryDB;
+
+CREATE TABLE Books (
+    ISBN VARCHAR(20) PRIMARY KEY,
+    Title VARCHAR(100),
+    Author VARCHAR(100)
+);
